@@ -14,14 +14,63 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+use strict;
+use warnings;
+
+use POSIX qw(getuid);
+
 sub
 get_next
 {
-	open(QM,"/usr/sbin/qm list|");
 	my $line;
+	my @ids;
+	my ($id,$name,$stat,$mem,$bootsz,$pid);
+	my $rv = open(QM,"/usr/sbin/qm list|");
+	if (! $rv) {
+		print STDERR "cmd 'qm list' returned $rv\n";
+		exit(1);
+	}
 	while (<QM>) {
 		chomp($line=$_);
-		print STDERR "qm: ${line}\n";
+		$line =~ s/\s+$//;
+		$line =~ s/^\s+//;
+		$line =~ s/\s{2,}/ /g;
+		if ($line =~ /^VMID/) {
+			next;
+		}
+		($id,$name,$stat,$mem,$bootsz,$pid) = split(/ /,$line);
+		my $i = { };
+		$i->{id}=$id;
+		$i->{name}=$name;
+		$i->{stat}=$stat;
+		$i->{mem}=$mem;
+		$i->{bootsz}=$bootsz;
+		$i->{pid}=$pid;
+		push @ids,$i;
+		#print STDERR "qm: ${line}\n";
 	}
 	close(QM);
+	my $newvmid=1;
+	while (1) {
+		my $foundmatch=0;
+		foreach my $i (@ids) {
+			if ($newvmid eq $i->{id}) {
+				$foundmatch=1;
+				last;
+			}
+		}
+		if (!$foundmatch) {
+			last;
+		}
+		$newvmid++;
+	}
+	return $newvmid;
 }
+
+if (getuid() != 0) {
+	print STDERR "newvm is pointless to run as !root, gimme more perms!\n";
+	exit(1);
+}
+
+my $id = get_next();
+print STDERR "newvmid available: $id\n";
