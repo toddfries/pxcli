@@ -80,20 +80,21 @@ if ($id < 10) {
 if ($id < 100) {
 	$padding .= "0";
 }
-print STDERR "newvmid available: $id\n";
+my $uid="$padding$id";
+print STDERR "newvmid available: $id, creating $uid\n";
 
-my $cmd = "qm create $padding$id ";
+my $cmd = "qm create $uid ";
 $cmd .= "-agent 1 -autostart 1 -cores 2 -cpu host -description 'vm${id}' ";
 $cmd .= "-hotplug 0 -memory 256 -onboot 1 -ostype other -serial0 socket ";
 $cmd .= "-sockets 1 ";
 $cmd .= "-numa 0 ";
 $cmd .= "-net0 model=virtio,bridge=vmbr1 ";
-$cmd .= "-ide2 file=local:iso/cd59.iso,media=cdrom ";
-$cmd .= "-virtio0 file=local-zfs:vm-001-disk-1,iothread=1,size=32G ";
+$cmd .= "-ide2 file=local:iso/cd60.iso,media=cdrom ";
+$cmd .= "-virtio0 file=local-zfs:vm-${uid}-disk-1,iothread=1,size=32G ";
 
 print "-> $cmd\n";
 system($cmd);
 
-$cmd = "zfs create -s -V 32GB rpool/data/vm-${padding}${id}-disk-1";
+$cmd = "zfs create -s -V 32GB rpool/data/vm-${uid}-disk-1";
 print "-> $cmd\n";
 system($cmd);
