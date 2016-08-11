@@ -50,7 +50,7 @@ get_next
 		#print STDERR "qm: ${line}\n";
 	}
 	close(QM);
-	my $newvmid=1;
+	my $newvmid=100;
 	while (1) {
 		my $foundmatch=0;
 		foreach my $i (@ids) {
@@ -73,4 +73,27 @@ if (getuid() != 0) {
 }
 
 my $id = get_next();
+my $padding = "";
+if ($id < 10) {
+	$padding .= "0";
+}
+if ($id < 100) {
+	$padding .= "0";
+}
 print STDERR "newvmid available: $id\n";
+
+my $cmd = "qm create $padding$id ";
+$cmd .= "-agent 1 -autostart 1 -cores 2 -cpu host -description 'vm${id}' ";
+$cmd .= "-hotplug 0 -memory 256 -onboot 1 -ostype other -serial0 socket ";
+$cmd .= "-sockets 1 ";
+$cmd .= "-numa 0 ";
+$cmd .= "-net0 model=virtio,bridge=vmbr1 ";
+$cmd .= "-ide2 file=local:iso/cd59.iso,media=cdrom ";
+$cmd .= "-virtio0 file=local-zfs:vm-001-disk-1,iothread=1,size=32G ";
+
+print "-> $cmd\n";
+system($cmd);
+
+$cmd = "zfs create -s -V 32GB rpool/data/vm-${padding}${id}-disk-1";
+print "-> $cmd\n";
+system($cmd);
